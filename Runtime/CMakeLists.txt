@@ -22,6 +22,11 @@ set(RENDERING_FILES
 
 )
 
+set(GFX_FILES
+	Gfx/Vulkan/VulkanGfx.h
+	Gfx/Vulkan/VulkanGfx.cpp
+)
+
 set(RENDERING_SUBPASSES_FILES
 
 )
@@ -80,6 +85,7 @@ set(PROJECT_FILES
     ${SCENE_GRAPH_FILES}
     ${SCENE_GRAPH_COMPONENT_FILES}
     ${SCENE_GRAPH_SCRIPTS_FILES}
+	${GFX_FILES}
     ${GRAPHING_FILES})
 
     # Add files based on platform
