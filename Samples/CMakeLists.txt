@@ -1,7 +1,5 @@
 set(MODE "EXE")
 set(TARGET_PREFIX "Sample_")
-
-GET_DIR_NAME(DIRNAME)
-set(FOLDER_NAME ${DIRNAME})
+set(FOLDER_NAME Samples)
 
 ADD_ALL_SUBDIR()
