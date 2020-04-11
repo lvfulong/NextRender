@@ -35,7 +35,9 @@ if(NOT CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     target_compile_definitions(glm INTERFACE GLM_FORCE_CXX14)
 endif()
 
-
+# spdlog
+add_subdirectory(spdlog)
+set_property(TARGET spdlog_headers_for_ide PROPERTY FOLDER "ThirdParty")
 
 # vulkan
 add_library(vulkan INTERFACE)
@@ -64,6 +66,19 @@ elseif(UNIX)
     endif()
 endif()
 
+# volk
+set(VOLK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/volk")
+set(VOLK_FILES
+    "${VOLK_DIR}/volk.c"
+    "${VOLK_DIR}/volk.h")
+
+add_library(volk STATIC ${VOLK_FILES})
+
+target_link_libraries(volk PUBLIC vulkan)
+
+target_include_directories(volk PUBLIC ${VOLK_DIR})
+
+set_property(TARGET volk PROPERTY FOLDER "ThirdParty")
 
 # glslang
 option(ENABLE_SPVREMAPPER OFF)

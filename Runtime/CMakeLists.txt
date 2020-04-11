@@ -11,8 +11,7 @@ set(RUNTIME_FILES
 	InputEvents.cpp)
 
 set(COMMON_FILES
-
-    )
+	Common/Logging.h)
 
 set(GEOMETRY_FILES
 
@@ -25,7 +24,7 @@ set(RENDERING_FILES
 set(GFX_FILES
 	Gfx/Vulkan/VulkanGfx.h
 	Gfx/Vulkan/VulkanGfx.cpp
-)
+	Gfx/Vulkan/VulkanUtils.h)
 
 set(RENDERING_SUBPASSES_FILES
 
@@ -134,6 +133,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Link third party libraries
 target_link_libraries(${PROJECT_NAME}
+	spdlog
+	volk
     glm
     glslang
     SPIRV

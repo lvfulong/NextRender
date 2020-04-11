@@ -1,3 +1,6 @@
+[submodule "third_party/volk"]
+	path = third_party/volk
+	url = https://github.com/zeux/volk
 [submodule "ThirdParty/glfw"]
 	path = ThirdParty/glfw
 	url = https://github.com/glfw/glfw
@@ -13,3 +16,6 @@
 [submodule "ThirdParty/vulkan"]
 	path = ThirdParty/vulkan
 	url = https://github.com/KhronosGroup/Vulkan-Headers
+[submodule "third_party/spdlog"]
+	path = third_party/spdlog
+	url = https://github.com/gabime/spdlog
