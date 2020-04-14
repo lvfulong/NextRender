@@ -9,3 +9,13 @@ VulkanGfx::VulkanGfx(const std::string &application_name, const std::unordered_m
 VulkanGfx::~VulkanGfx()
 {
 }
+
+void VulkanGfx::BeginFrame()
+{
+
+}
+
+void VulkanGfx::EndFrame()
+{
+
+}
