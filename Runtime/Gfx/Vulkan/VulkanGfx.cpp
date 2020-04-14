@@ -26,10 +26,7 @@ bool validate_layers(const std::vector<const char *> &     required,
 
     return true;
 }
-VulkanGfx::VulkanGfx(const std::string& application_name, 
-    const std::unordered_map<const char *, bool>& required_extensions,
-    const std::vector<const char *>& required_validation_layers,
-    bool headless)
+VulkanGfx::VulkanGfx(const std::string &application_name, const std::unordered_map<const char *, bool> &required_extensions, const std::vector<const char *> &required_validation_layers, bool headless)
 {
     VkResult result = volkInitialize();
     assert(result && "Failed to initialize volk.");

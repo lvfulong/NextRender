@@ -14,7 +14,7 @@ public:
 
     ~WindowsPlatform();
 
-    virtual bool Initialize(std::unique_ptr<Application>&& application) override;
+    virtual bool Initialize(std::unique_ptr<Application> &&application) override;
 
     virtual void MainLoop() override;
 

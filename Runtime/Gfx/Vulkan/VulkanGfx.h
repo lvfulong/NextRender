@@ -3,15 +3,13 @@
 #include <volk.h>
 #include <string>
 #include <unordered_map>
+#include "Common/Utils.h"
 
-class VulkanGfx
+class VulkanGfx : public NonCopyable
 {
 public:
 
-    VulkanGfx(const std::string& application_name,
-        const std::unordered_map<const char *, bool>& required_extensions = {},
-        const std::vector<const char *>& required_validation_layers = {},
-        bool headless = false);
+    VulkanGfx(const std::string &applicationName, const std::unordered_map<const char *, bool> &requiredExtensions = {}, const std::vector<const char *> &requiredValidationLayers = {}, bool headless = false);
 
     ~VulkanGfx();
 

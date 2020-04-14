@@ -11,6 +11,7 @@ set(RUNTIME_FILES
 	InputEvents.cpp)
 
 set(COMMON_FILES
+	Common/Utils.h
 	Common/Logging.h)
 
 set(GEOMETRY_FILES

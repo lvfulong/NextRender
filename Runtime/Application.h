@@ -1,8 +1,9 @@
 #pragma once
 
 #include <string>
+#include "Common/Utils.h"
 
-class Application
+class Application : public NonCopyable
 {
 public:
 
@@ -12,12 +13,7 @@ public:
 
     const std::string& GetName() const;
 
-    void SetName(const std::string& name);
-
-    //virtual void createRender() = 0;
-    //virtual void init() = 0;
-    //virtual int shutDown() = 0;
-    //virtual bool update() = 0;
+    void SetName(const std::string &name);
 
 private:
 

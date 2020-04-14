@@ -64,7 +64,7 @@ WindowsPlatform::~WindowsPlatform()
 
 }
 
-bool WindowsPlatform::Initialize(std::unique_ptr<Application>&& application)
+bool WindowsPlatform::Initialize(std::unique_ptr<Application> &&application)
 {
     if (!glfwInit())
     {

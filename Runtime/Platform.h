@@ -2,8 +2,9 @@
 
 #include <memory>
 #include "Application.h"
+#include "Common/Utils.h"
 
-class Platform
+class Platform : public NonCopyable
 {
 public:
 
@@ -11,7 +12,7 @@ public:
 
     virtual ~Platform() = default;
 
-    virtual bool Initialize(std::unique_ptr<Application>&& application) = 0;
+    virtual bool Initialize(std::unique_ptr<Application> &&application) = 0;
 
     virtual void MainLoop() = 0;
 
