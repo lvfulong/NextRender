@@ -13,5 +13,11 @@ public:
 
     ~VulkanGfx();
 
+    void BeginFrame();
+
+    void EndFrame();
+
 private:
+
+    uint32_t m_CurrentFrameIndex{ 0 };
 };
