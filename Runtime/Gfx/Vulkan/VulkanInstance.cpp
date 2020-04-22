@@ -1,5 +1,47 @@
 #include "VulkanInstance.h"
 
+
+#if defined(VKB_DEBUG) || defined(VKB_VALIDATION_LAYERS)
+
+VKAPI_ATTR VkBool32 VKAPI_CALL debug_utils_messenger_callback(VkDebugUtilsMessageSeverityFlagBitsEXT message_severity, VkDebugUtilsMessageTypeFlagsEXT message_type,
+    const VkDebugUtilsMessengerCallbackDataEXT *callback_data,
+    void *                                      user_data)
+{
+    // Log debug messge
+    if (message_severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+    {
+        LOGW("{} - {}: {}", callback_data->messageIdNumber, callback_data->pMessageIdName, callback_data->pMessage);
+    }
+    else if (message_severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+    {
+        LOGE("{} - {}: {}", callback_data->messageIdNumber, callback_data->pMessageIdName, callback_data->pMessage);
+    }
+    return VK_FALSE;
+}
+
+static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT /*type*/,
+    uint64_t /*object*/, size_t /*location*/, int32_t /*message_code*/,
+    const char *layer_prefix, const char *message, void * /*user_data*/)
+{
+    if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
+    {
+        LOGE("{}: {}", layer_prefix, message);
+    }
+    else if (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT)
+    {
+        LOGW("{}: {}", layer_prefix, message);
+    }
+    else if (flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)
+    {
+        LOGW("{}: {}", layer_prefix, message);
+    }
+    else
+    {
+        LOGI("{}: {}", layer_prefix, message);
+    }
+    return VK_FALSE;
+}
+#endif
 static bool validateLayers(const std::vector<const char *> &required, const std::vector<VkLayerProperties> &available)
 {
     for (auto layer : required)
@@ -141,7 +183,7 @@ VulkanInstance::VulkanInstance(const std::string &applictionName,
         }
         else
         {
-            enabled_extensions.push_back(extension_name);
+            enabledExtensions.push_back(extensionName);
         }
     }
 
@@ -179,4 +221,112 @@ VulkanInstance::VulkanInstance(const std::string &applictionName,
         //throw std::runtime_error("Required validation layers are missing.");
         LOGW("Required validation layers are missing.");
     }
+
+
+    VkApplicationInfo appInfo{ VK_STRUCTURE_TYPE_APPLICATION_INFO };
+
+    app_info.pApplicationName = applicationName.c_str();
+    app_info.applicationVersion = 0;
+    app_info.pEngineName = "Vulkan Samples";
+    app_info.engineVersion = 0;
+    app_info.apiVersion = VK_MAKE_VERSION(1, 0, 0);
+
+    VkInstanceCreateInfo instanceInfo = { VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO };
+
+    instanceInfo.pApplicationInfo = &appInfo;
+
+    instanceInfo.enabledExtensionCount = /*to_u32*/(enabledExtensions.size());
+    instanceInfo.ppEnabledExtensionNames = enabledExtensions.data();
+
+    instanceInfo.enabledLayerCount = /*to_u32*/(requestedValidationLayers.size());
+    instanceInfo.ppEnabledLayerNames = requestedValidationLayers.data();
+
+#if defined(VKB_DEBUG) || defined(VKB_VALIDATION_LAYERS)
+    VkDebugUtilsMessengerCreateInfoEXT debugUtilsCreateInfo = { VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT };
+    VkDebugReportCallbackCreateInfoEXT debugReportCreateInfo = { VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT };
+    if (debug_utils)
+    {
+        debug_utils_create_info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
+        debug_utils_create_info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
+        debug_utils_create_info.pfnUserCallback = debugUtilsMessengerCallback;
+
+        instance_info.pNext = &debugUtilsCreateInfo;
+    }
+    else
+    {
+        debug_report_create_info.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT;
+        debug_report_create_info.pfnCallback = debugCallback;
+
+        instance_info.pNext = &debugReportCreateInfo;
+    }
+#endif
+
+
+    // Create the Vulkan instance
+    result = vkCreateInstance(&instanceInfo, nullptr, &m_Handle);
+
+    assert(result == VK_SUCCESS && "Could not create Vulkan instance");
+
+    volkLoadInstance(m_Handle);
+
+#if defined(VKB_DEBUG) || defined(VKB_VALIDATION_LAYERS)
+    if (debugUtils)
+    {
+        result = vkCreateDebugUtilsMessengerEXT(handle, &debug_utils_create_info, nullptr, &debug_utils_messenger);
+
+        assert(result == VK_SUCCESS && "Could not create debug utils messenger");
+
+    }
+    else
+    {
+        result = vkCreateDebugReportCallbackEXT(handle, &debug_report_create_info, nullptr, &debug_report_callback);
+
+        assert(result == VK_SUCCESS && "Could not create debug report callback");
+
+    }
+#endif
+
+    QueryGpus();
+
 }
+
+
+void Instance::QueryGpus()
+{
+    // Querying valid physical devices on the machine
+    uint32_t physical_device_count{ 0 };
+    VK_CHECK(vkEnumeratePhysicalDevices(handle, &physical_device_count, nullptr));
+
+    if (physical_device_count < 1)
+    {
+        throw std::runtime_error("Couldn't find a physical device that supports Vulkan.");
+    }
+
+    std::vector<VkPhysicalDevice> physical_devices;
+    physical_devices.resize(physical_device_count);
+    VK_CHECK(vkEnumeratePhysicalDevices(handle, &physical_device_count, physical_devices.data()));
+
+    // Create gpus wrapper objects from the VkPhysicalDevice's
+    for (auto &physical_device : physical_devices)
+    {
+        gpus.push_back(std::make_unique<PhysicalDevice>(*this, physical_device));
+    }
+}
+
+/*PhysicalDevice &Instance::getSuitableGpu()
+{
+    assert(!gpus.empty() && "No physical devices were found on the system.");
+
+    // Find a discrete GPU
+    for (auto &gpu : gpus)
+    {
+        if (gpu->get_properties().deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+        {
+            return *gpu;
+        }
+    }
+
+    // Otherwise just pick the first one
+    LOGW("Couldn't find a discrete physical device, picking default GPU");
+    return *gpus.at(0);
+}*/
