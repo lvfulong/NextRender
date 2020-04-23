@@ -12,6 +12,8 @@ public:
                    const std::vector<const char *> &requiredValidationLayers,
                    bool headless);
 
+    ~VulkanInstance();
+
 private:
 
     void QueryGpus();

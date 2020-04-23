@@ -161,8 +161,7 @@ VulkanInstance::VulkanInstance(const std::string &applictionName,
         m_EnabledExtensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
     }
 
-    //
-    //auto extensionError = false;
+    auto extensionError = false;
     for (auto extension : requiredExtensions)
     {
         auto extensionName = extension.first;
@@ -177,6 +176,7 @@ VulkanInstance::VulkanInstance(const std::string &applictionName,
             }
             else
             {
+                extensionError = true;
                 LOGE("Required instance extension {} not available, cannot run", extensionName);
             }
             //extensionError = !extension_is_optional;
@@ -187,11 +187,10 @@ VulkanInstance::VulkanInstance(const std::string &applictionName,
         }
     }
 
-    /*if (extensionError)
     {
-        throw std::runtime_error
-        LOGW("Required instance extensions are missing.");
-    }*/
+        //throw std::runtime_error
+        LOGW(!extensionError && "Required instance extensions are missing.");
+    }
 
     uint32_t instanceLayerCount;
     VK_CHECK(vkEnumerateInstanceLayerProperties(&instanceLayerCount, nullptr));
@@ -330,3 +329,30 @@ void Instance::QueryGpus()
     LOGW("Couldn't find a discrete physical device, picking default GPU");
     return *gpus.at(0);
 }*/
+
+VulkanInstance::~VulkanInstance()
+{
+#if defined(VKB_DEBUG) || defined(VKB_VALIDATION_LAYERS)
+    if (debug_utils_messenger != VK_NULL_HANDLE)
+    {
+        vkDestroyDebugUtilsMessengerEXT(handle, debug_utils_messenger, nullptr);
+    }
+    if (debug_report_callback != VK_NULL_HANDLE)
+    {
+        vkDestroyDebugReportCallbackEXT(handle, debug_report_callback, nullptr);
+    }
+#endif
+
+    if (handle != VK_NULL_HANDLE)
+    {
+        vkDestroyInstance(handle, nullptr);
+    }
+}
+
+bool VulkanInstance::is_extension_supported(const std::string &requested_extension)
+{
+    return std::find_if(device_extensions.begin(), device_extensions.end(),
+        [requested_extension](auto &device_extension) {
+        return std::strcmp(device_extension.extensionName, requested_extension.c_str()) == 0;
+    }) != device_extensions.end();
+}
