@@ -23,7 +23,10 @@ private:
 
     void QueryGpus();
 
-    //bool IsExtensionSupported(const std::string &requestedExtension);
+    bool IsExtensionSupported(const std::string &requestedExtension);
+
+    bool IsValidationLayerSupported(const std::string &requestedValidationLayer);
+
 
     VkInstance m_Handle{ VK_NULL_HANDLE };
 
@@ -36,6 +39,10 @@ private:
     VkDebugReportCallbackEXT debug_report_callback{ VK_NULL_HANDLE };
 
 #endif
-    std::vector<std::unique_ptr<VulkanPhysicalDevice>> m_GPUS;
+    std::vector<std::unique_ptr<VulkanPhysicalDevice>> m_GPUs;
+
+    std::vector<VkExtensionProperties> m_SupportedInstanceExtensions;
+
+    std::vector<VkLayerProperties> m_SupportedValidationLayers;
 
 };

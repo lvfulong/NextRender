@@ -1,6 +1,7 @@
 #include "VulkanInstance.h"
 #include "Common/Logging.h"
 #include "VulkanUtils.h"
+#include <algorithm>
 
 #if defined(VKB_DEBUG) || defined(VKB_VALIDATION_LAYERS)
 
@@ -112,29 +113,28 @@ VulkanInstance::VulkanInstance(const std::string &applicationName,
                                bool headless)
 {
     VkResult result = volkInitialize();
-    assert(result == 0 && "Failt to initialize volk.");
+    assert(result == VK_SUCCESS && "Failt to initialize volk.");
 
+    // Process instance extention
     uint32_t instanceExtensionCount;
     VK_CHECK(vkEnumerateInstanceExtensionProperties(nullptr, &instanceExtensionCount, nullptr));
 
-    std::vector<VkExtensionProperties> availableInstanceExtensions(instanceExtensionCount);
-    VK_CHECK(vkEnumerateInstanceExtensionProperties(nullptr, &instanceExtensionCount, availableInstanceExtensions.data()));
+    m_SupportedInstanceExtensions.resize(instanceExtensionCount);
+    VK_CHECK(vkEnumerateInstanceExtensionProperties(nullptr, &instanceExtensionCount, m_SupportedInstanceExtensions.data()));
 
 
 #if defined(NEXT_RENDER_DEBUG) || defined(NEXT_RENDER_VALIDATION_LAYERS)
     // Check if VK_EXT_debug_utils is supported, which supersedes VK_EXT_Debug_Report
     bool debugUtils = false;
-    for (auto &availableExtension : availableInstanceExtensions)
+    if (IsExtensionSupported(VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
     {
-        if (strcmp(availableExtension.extensionName, VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0)
-        {
-            debugUtils = true;
-            LOGI("{} is available, enabling it", VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-            m_EnabledExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-        }
+        debugUtils = true;
+        LOGI("{} is available, enabling it", VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+        m_EnabledExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
-    if (!debugUtils)
+    else
     {
+        LOGI("{} is available, enabling it", VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
         m_EnabledExtensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
     }
 #endif
@@ -143,33 +143,30 @@ VulkanInstance::VulkanInstance(const std::string &applicationName,
     if (headless)
     {
         bool headlessExtension = false;
-        for (auto &availableExtension : availableInstanceExtensions)
+
+        if (IsExtensionSupported(VK_EXT_HEADLESS_SURFACE_EXTENSION_NAME))
         {
-            if (strcmp(availableExtension.extensionName, VK_EXT_HEADLESS_SURFACE_EXTENSION_NAME) == 0)
-            {
-                headlessExtension = true;
-                LOGI("{} is available, enabling it", VK_EXT_HEADLESS_SURFACE_EXTENSION_NAME);
-                m_EnabledExtensions.push_back(VK_EXT_HEADLESS_SURFACE_EXTENSION_NAME);
-            }
+            headlessExtension = true;
+            LOGI("{} is available, enabling it", VK_EXT_HEADLESS_SURFACE_EXTENSION_NAME);
+            m_EnabledExtensions.push_back(VK_EXT_HEADLESS_SURFACE_EXTENSION_NAME);
         }
-        if (!headlessExtension)
+        else
         {
             LOGW("{} is not available, disabling swapchain creation", VK_EXT_HEADLESS_SURFACE_EXTENSION_NAME);
         }
     }
     else
     {
+        LOGI("{} is available, enabling it", VK_KHR_SURFACE_EXTENSION_NAME);
         m_EnabledExtensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
     }
 
-    auto extensionError = false;
-    for (auto extension : requiredExtensions)
+    for (std::pair<const char *, bool> extension : requiredExtensions)
     {
         auto extensionName = extension.first;
         auto extensionIsOptional = extension.second;
-        if (std::find_if(availableInstanceExtensions.begin(),
-                         availableInstanceExtensions.end(),
-                         [&extensionName](VkExtensionProperties availableExtension) { return strcmp(availableExtension.extensionName, extensionName) == 0; }) == availableInstanceExtensions.end())
+
+        if (!IsExtensionSupported(extensionName))
         {
             if (extensionIsOptional)
             {
@@ -177,51 +174,44 @@ VulkanInstance::VulkanInstance(const std::string &applicationName,
             }
             else
             {
-                extensionError = true;
                 LOGE("Required instance extension {} not available, cannot run", extensionName);
             }
-            //extensionError = !extension_is_optional;
         }
         else
         {
+            LOGI("{} is available, enabling it", extensionName);
             m_EnabledExtensions.push_back(extensionName);
         }
-    }
-
-    {
-        //throw std::runtime_error
-        LOGW(!extensionError && "Required instance extensions are missing.");
     }
 
     uint32_t instanceLayerCount;
     VK_CHECK(vkEnumerateInstanceLayerProperties(&instanceLayerCount, nullptr));
 
-    std::vector<VkLayerProperties> supportedValidationLayers(instanceLayerCount);
-    VK_CHECK(vkEnumerateInstanceLayerProperties(&instanceLayerCount, supportedValidationLayers.data()));
+    m_SupportedValidationLayers.resize(instanceLayerCount);
+    VK_CHECK(vkEnumerateInstanceLayerProperties(&instanceLayerCount, m_SupportedValidationLayers.data()));
 
-    std::vector<const char *> requestedValidationLayers(requiredValidationLayers);
+    std::vector<const char *> enabledValidationLayers;
+    enabledValidationLayers.reserve(requiredValidationLayers.size());
 
 #ifdef NEXT_RENDER_VALIDATION_LAYERS
     // Determine the optimal validation layers to enable that are necessary for useful debugging
     std::vector<const char *> optimalValidationLayers = getOptimalValidationLayers(supportedValidationLayers);
-    requestedValidationLayers.insert(requestedValidationLayers.end(), optimalValidationLayers.begin(), optimalValidationLayers.end());
+    enabledValidationLayers.insert(requestedValidationLayers.end(), optimalValidationLayers.begin(), optimalValidationLayers.end());
 #endif
 
-    //TODO
-    if (validateLayers(requestedValidationLayers, supportedValidationLayers))
+
+    for (const char *validationLayer : requiredValidationLayers)
     {
-        LOGI("Enabled Validation Layers:")
-        for (const auto &layer : requestedValidationLayers)
+        if (IsValidationLayerSupported(validationLayer))
         {
-            LOGI("	\t{}", layer);
+            enabledValidationLayers.emplace_back(validationLayer);
+            LOGI("{} Enabled Validation Layers", validationLayer);
+        }
+        else
+        {
+            LOGE("{}  Required validation layers are missing.", validationLayer);
         }
     }
-    else
-    {
-        //throw std::runtime_error("Required validation layers are missing.");
-        LOGW("Required validation layers are missing.");
-    }
-
 
     VkApplicationInfo appInfo{ VK_STRUCTURE_TYPE_APPLICATION_INFO };
 
@@ -238,8 +228,8 @@ VulkanInstance::VulkanInstance(const std::string &applicationName,
     instanceInfo.enabledExtensionCount = /*to_u32*/(m_EnabledExtensions.size());
     instanceInfo.ppEnabledExtensionNames = m_EnabledExtensions.data();
 
-    instanceInfo.enabledLayerCount = /*to_u32*/(requestedValidationLayers.size());
-    instanceInfo.ppEnabledLayerNames = requestedValidationLayers.data();
+    instanceInfo.enabledLayerCount = /*to_u32*/(enabledValidationLayers.size());
+    instanceInfo.ppEnabledLayerNames = enabledValidationLayers.data();
 
 #if defined(VKB_DEBUG) || defined(VKB_VALIDATION_LAYERS)
     VkDebugUtilsMessengerCreateInfoEXT debugUtilsCreateInfo = { VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT };
@@ -294,22 +284,19 @@ VulkanInstance::VulkanInstance(const std::string &applicationName,
 void VulkanInstance::QueryGpus()
 {
     // Querying valid physical devices on the machine
-    uint32_t physical_device_count{ 0 };
-    VK_CHECK(vkEnumeratePhysicalDevices(m_Handle, &physical_device_count, nullptr));
+    uint32_t physicalDeviceCount{ 0 };
+    VK_CHECK(vkEnumeratePhysicalDevices(m_Handle, &physicalDeviceCount, nullptr));
 
-    if (physical_device_count < 1)
-    {
-        throw std::runtime_error("Couldn't find a physical device that supports Vulkan.");
-    }
+    assert(physicalDeviceCount >= 1 && "Couldn't find a physical device that supports Vulkan.");
 
-    std::vector<VkPhysicalDevice> physical_devices;
-    physical_devices.resize(physical_device_count);
-    VK_CHECK(vkEnumeratePhysicalDevices(m_Handle, &physical_device_count, physical_devices.data()));
+    std::vector<VkPhysicalDevice> physicalDevices;
+    physicalDevices.resize(physicalDeviceCount);
+    VK_CHECK(vkEnumeratePhysicalDevices(m_Handle, &physicalDeviceCount, physicalDevices.data()));
 
     // Create gpus wrapper objects from the VkPhysicalDevice's
-    for (auto &physical_device : physical_devices)
+    for (auto &device : physicalDevices)
     {
-        m_GPUS.push_back(std::make_unique<VulkanPhysicalDevice>(*this, physical_device));
+        m_GPUs.push_back(std::make_unique<VulkanPhysicalDevice>(*this, device));
     }
 }
 
@@ -350,10 +337,18 @@ VulkanInstance::~VulkanInstance()
     }
 }
 
-/*bool VulkanInstance::IsExtensionSupported(const std::string &requestedExtension)
+bool VulkanInstance::IsExtensionSupported(const std::string &requestedExtension)
 {
-    return std::find_if(device_extensions.begin(), device_extensions.end(),
-        [requested_extension](auto &device_extension) {
-        return std::strcmp(device_extension.extensionName, requested_extension.c_str()) == 0;
-    }) != device_extensions.end();
-}*/
+    return std::find_if(m_SupportedInstanceExtensions.begin(), m_SupportedInstanceExtensions.end(),
+        [requestedExtension](VkExtensionProperties &deviceExtension) {
+        return std::strcmp(deviceExtension.extensionName, requestedExtension.c_str()) == 0;
+    }) != m_SupportedInstanceExtensions.end();
+}
+
+bool VulkanInstance::IsValidationLayerSupported(const std::string &requestedValidationLayer)
+{
+    return std::find_if(m_SupportedValidationLayers.begin(), m_SupportedValidationLayers.end(),
+        [requestedValidationLayer](VkLayerProperties &layerProperties) {
+        return std::strcmp(layerProperties.layerName, requestedValidationLayer.c_str()) == 0;
+    }) != m_SupportedValidationLayers.end();
+}
