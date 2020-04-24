@@ -18,6 +18,11 @@ public:
 
     const std::vector<VkQueueFamilyProperties> &GetQueueFamilyProperties() const;
 
+    VkPhysicalDevice GetHandle() const;
+
+    //const  VulkanInstance &GetVulkanInstance() const;
+
+    void *GetRequestedExtensionFeatures() const;
 private:
 
     const class VulkanInstance &m_Instance;
@@ -27,4 +32,6 @@ private:
     VkPhysicalDeviceProperties m_Properties;
 
     std::vector<VkQueueFamilyProperties> m_QueueFamilyProperties;
+
+    void * m_LastRequestedExtensionFeature{ nullptr };
 };

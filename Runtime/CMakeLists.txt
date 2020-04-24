@@ -29,7 +29,9 @@ set(GFX_FILES
 	Gfx/Vulkan/VulkanInstance.h
 	Gfx/Vulkan/VulkanInstance.cpp
 	Gfx/Vulkan/VulkanPhysicalDevice.h
-	Gfx/Vulkan/VulkanPhysicalDevice.cpp)
+	Gfx/Vulkan/VulkanPhysicalDevice.cpp
+	Gfx/Vulkan/VulkanDevice.h
+	Gfx/Vulkan/VulkanDevice.cpp)
 
 set(RENDERING_SUBPASSES_FILES
 

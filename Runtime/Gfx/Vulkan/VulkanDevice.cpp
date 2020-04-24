@@ -1,104 +1,177 @@
+#include "VulkanDevice.h"
 #include "VulkanPhysicalDevice.h"
+#include "Common/Logging.h"
+#include "VulkanUtils.h"
 
-VulkanDevice::VulkanDevice(const PhysicalDevice &gpu, VkSurfaceKHR surface, std::unordered_map<const char *, bool> requested_extensions = {})
+VulkanDevice::VulkanDevice(const VulkanPhysicalDevice &gpu, VkSurfaceKHR surface, std::unordered_map<const char *, bool> requestedExtensions) : mGPU{ gpu }, m_Surface{ surface }
 {
 
     LOGI("Selected GPU: {}", gpu.GetProperties().deviceName);
 
     // Prepare the device queues
-    uint32_t                             queueFamilyPropertiesCount = /*to_u32*/(gpu.GetQueueFamilyProperties().size());
+    uint32_t queueFamilyPropertiesCount = /*to_u32*/(gpu.GetQueueFamilyProperties().size());
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos(queueFamilyPropertiesCount, { VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO });
-    std::vector<std::vector<float>>      queuePriorities(queueFamilyPropertiesCount);
+    std::vector<std::vector<float>> queuePriorities(queueFamilyPropertiesCount);
 
-    for (uint32_t queue_family_index = 0U; queue_family_index < queueFamilyPropertiesCount; ++queue_family_index)
+    for (uint32_t index = 0U; index < queueFamilyPropertiesCount; ++index)
     {
-        const VkQueueFamilyProperties &queue_family_property = gpu.GetQueueFamilyProperties()[queue_family_index];
+        const VkQueueFamilyProperties &queueFamilyProperty = gpu.GetQueueFamilyProperties()[index];
 
-        queue_priorities[queue_family_index].resize(queue_family_property.queueCount, 1.0f);
+        queuePriorities[index].resize(queueFamilyProperty.queueCount, 1.0f);
 
-        VkDeviceQueueCreateInfo &queue_create_info = queue_create_infos[queue_family_index];
+        VkDeviceQueueCreateInfo &queueCreateInfo = queueCreateInfos[index];
 
-        queue_create_info.queueFamilyIndex = queue_family_index;
-        queue_create_info.queueCount = queue_family_property.queueCount;
-        queue_create_info.pQueuePriorities = queue_priorities[queue_family_index].data();
+        queueCreateInfo.queueFamilyIndex = index;
+        queueCreateInfo.queueCount = queueFamilyProperty.queueCount;
+        queueCreateInfo.pQueuePriorities = queuePriorities[index].data();
     }
 
     // Check extensions to enable Vma Dedicated Allocation
-    uint32_t device_extension_count;
-    VK_CHECK(vkEnumerateDeviceExtensionProperties(gpu.get_handle(), nullptr, &device_extension_count, nullptr));
-    device_extensions = std::vector<VkExtensionProperties>(device_extension_count);
-    VK_CHECK(vkEnumerateDeviceExtensionProperties(gpu.get_handle(), nullptr, &device_extension_count, device_extensions.data()));
+    uint32_t deviceExtensionCount;
+    VK_CHECK(vkEnumerateDeviceExtensionProperties(gpu.GetHandle(), nullptr, &deviceExtensionCount, nullptr));
+    m_DeviceExtensions.resize(deviceExtensionCount);
+    VK_CHECK(vkEnumerateDeviceExtensionProperties(gpu.GetHandle(), nullptr, &deviceExtensionCount, m_DeviceExtensions.data()));
 
     // Display supported extensions
-    if (device_extensions.size() > 0)
+    if (m_DeviceExtensions.size() > 0)
     {
         LOGD("Device supports the following extensions:");
-        for (auto &extension : device_extensions)
+        for (VkExtensionProperties &extension : m_DeviceExtensions)
         {
             LOGD("  \t{}", extension.extensionName);
         }
     }
 
-    bool can_get_memory_requirements = is_extension_supported("VK_KHR_get_memory_requirements2");
-    bool has_dedicated_allocation = is_extension_supported("VK_KHR_dedicated_allocation");
+    bool canGetMemoryRequirements = IsExtensionSupported("VK_KHR_get_memory_requirements2");
+    bool hasDedicatedAllocation = IsExtensionSupported("VK_KHR_dedicated_allocation");
 
-    if (can_get_memory_requirements && has_dedicated_allocation)
+    if (canGetMemoryRequirements && hasDedicatedAllocation)
     {
-        enabled_extensions.push_back("VK_KHR_get_memory_requirements2");
-        enabled_extensions.push_back("VK_KHR_dedicated_allocation");
+        m_EnabledExtensions.push_back("VK_KHR_get_memory_requirements2");
+        m_EnabledExtensions.push_back("VK_KHR_dedicated_allocation");
         LOGI("Dedicated Allocation enabled");
     }
 
     // Check that extensions are supported before trying to create the device
-    std::vector<const char *> unsupported_extensions{};
-    for (auto &extension : requested_extensions)
+    std::vector<const char *> unsupportedExtensions{};
+    for (auto &extension : requestedExtensions)
     {
-        if (is_extension_supported(extension.first))
+        if (IsExtensionSupported(extension.first))
         {
-            enabled_extensions.emplace_back(extension.first);
+            m_EnabledExtensions.emplace_back(extension.first);
         }
         else
         {
-            unsupported_extensions.emplace_back(extension.first);
+            unsupportedExtensions.emplace_back(extension.first);
         }
     }
 
-    if (enabled_extensions.size() > 0)
+    if (m_EnabledExtensions.size() > 0)
     {
         LOGI("Device supports the following requested extensions:");
-        for (auto &extension : enabled_extensions)
+        for (auto &extension : m_EnabledExtensions)
         {
             LOGI("  \t{}", extension);
         }
     }
 
-    if (unsupported_extensions.size() > 0)
+    if (unsupportedExtensions.size() > 0)
     {
-        auto error = false;
-        for (auto &extension : unsupported_extensions)
+        for (auto &extension : unsupportedExtensions)
         {
-            auto extension_is_optional = requested_extensions[extension];
-            if (extension_is_optional)
+            auto extensionIsOptional = requestedExtensions[extension];
+            if (extensionIsOptional)
             {
                 LOGW("Optional device extension {} not available, some features may be disabled", extension);
             }
             else
             {
-                error = true;
                 LOGE("Required device extension {} not available, cannot run", extension);
             }
             
         }
+    }
+
+    VkDeviceCreateInfo createInfo{ VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
+
+    // Latest requested feature will have the pNext's all set up for device creation.
+    createInfo.pNext = gpu.GetRequestedExtensionFeatures();
+
+    createInfo.pQueueCreateInfos = queueCreateInfos.data();
+    createInfo.queueCreateInfoCount = /*to_u32*/(queueCreateInfos.size());
+    const auto requested_gpu_features = gpu.get_requested_features();
+    createInfo.pEnabledFeatures = &requested_gpu_features;
+    createInfo.enabledExtensionCount = to_u32(enabled_extensions.size());
+    createInfo.ppEnabledExtensionNames = enabled_extensions.data();
+
+    VkResult result = vkCreateDevice(gpu.GetHandle(), &createInfo, nullptr, &handle);
+
+    assert(result == VK_SUCCESS && "Cannot create device");
+
+    queues.resize(queue_family_properties_count);
+
+    for (uint32_t queue_family_index = 0U; queue_family_index < queue_family_properties_count; ++queue_family_index)
+    {
+        const VkQueueFamilyProperties &queue_family_property = gpu.get_queue_family_properties()[queue_family_index];
+
+        VkBool32 present_supported = gpu.is_present_supported(surface, queue_family_index);
+
+        // Only check if surface is valid to allow for headless applications
+        if (surface != VK_NULL_HANDLE)
         {
-           assert(!error && "Extensions not present");
+            VK_CHECK(vkGetPhysicalDeviceSurfaceSupportKHR(gpu.get_handle(), queue_family_index, surface, &present_supported));
+        }
+
+        for (uint32_t queue_index = 0U; queue_index < queue_family_property.queueCount; ++queue_index)
+        {
+            queues[queue_family_index].emplace_back(*this, queue_family_index, queue_family_property, present_supported, queue_index);
         }
     }
+
+    VmaVulkanFunctions vma_vulkan_func{};
+    vma_vulkan_func.vkAllocateMemory = vkAllocateMemory;
+    vma_vulkan_func.vkBindBufferMemory = vkBindBufferMemory;
+    vma_vulkan_func.vkBindImageMemory = vkBindImageMemory;
+    vma_vulkan_func.vkCreateBuffer = vkCreateBuffer;
+    vma_vulkan_func.vkCreateImage = vkCreateImage;
+    vma_vulkan_func.vkDestroyBuffer = vkDestroyBuffer;
+    vma_vulkan_func.vkDestroyImage = vkDestroyImage;
+    vma_vulkan_func.vkFlushMappedMemoryRanges = vkFlushMappedMemoryRanges;
+    vma_vulkan_func.vkFreeMemory = vkFreeMemory;
+    vma_vulkan_func.vkGetBufferMemoryRequirements = vkGetBufferMemoryRequirements;
+    vma_vulkan_func.vkGetImageMemoryRequirements = vkGetImageMemoryRequirements;
+    vma_vulkan_func.vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties;
+    vma_vulkan_func.vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties;
+    vma_vulkan_func.vkInvalidateMappedMemoryRanges = vkInvalidateMappedMemoryRanges;
+    vma_vulkan_func.vkMapMemory = vkMapMemory;
+    vma_vulkan_func.vkUnmapMemory = vkUnmapMemory;
+
+    VmaAllocatorCreateInfo allocator_info{};
+    allocator_info.physicalDevice = gpu.get_handle();
+    allocator_info.device = handle;
+
+    if (can_get_memory_requirements && has_dedicated_allocation)
+    {
+        allocator_info.flags |= VMA_ALLOCATOR_CREATE_KHR_DEDICATED_ALLOCATION_BIT;
+        vma_vulkan_func.vkGetBufferMemoryRequirements2KHR = vkGetBufferMemoryRequirements2KHR;
+        vma_vulkan_func.vkGetImageMemoryRequirements2KHR = vkGetImageMemoryRequirements2KHR;
+    }
+
+    allocator_info.pVulkanFunctions = &vma_vulkan_func;
+
+    result = vmaCreateAllocator(&allocator_info, &memory_allocator);
+
+    assert(result == VK_SUCCESS && "Cannot create allocator" );
+
+    //command_pool = std::make_unique<CommandPool>(*this, get_queue_by_flags(VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT, 0).get_family_index());
+    //fence_pool = std::make_unique<FencePool>(*this);
+
 }
 
-bool VulkanDevice::is_extension_supported(const std::string &requested_extension)
+bool VulkanDevice::IsExtensionSupported(const std::string &requestedExtension)
 {
-    return std::find_if(device_extensions.begin(), device_extensions.end(),
-        [requested_extension](auto &device_extension) {
-        return std::strcmp(device_extension.extensionName, requested_extension.c_str()) == 0;
-    }) != device_extensions.end();
+    return std::find_if(m_DeviceExtensions.begin(), m_DeviceExtensions.end(),
+        [requestedExtension](auto &deviceExtension) {
+        return std::strcmp(deviceExtension.extensionName, requestedExtension.c_str()) == 0;
+    }) != m_DeviceExtensions.end();
 }

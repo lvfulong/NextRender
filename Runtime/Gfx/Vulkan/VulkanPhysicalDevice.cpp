@@ -25,3 +25,18 @@ const std::vector<VkQueueFamilyProperties> &VulkanPhysicalDevice::GetQueueFamily
 {
     return m_QueueFamilyProperties;
 }
+
+VkPhysicalDevice VulkanPhysicalDevice::GetHandle() const
+{
+    return m_Handle;
+}
+
+/*const  VulkanInstance &VulkanPhysicalDevice::GetVulkanInstance() const
+{
+    return m_Instance;
+}*/
+
+void *VulkanPhysicalDevice::GetRequestedExtensionFeatures() const
+{
+    return m_LastRequestedExtensionFeature;
+}
