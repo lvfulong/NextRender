@@ -1,5 +1,6 @@
 #include "VulkanInstance.h"
-
+#include "Common/Logging.h"
+#include "VulkanUtils.h"
 
 #if defined(VKB_DEBUG) || defined(VKB_VALIDATION_LAYERS)
 
@@ -105,7 +106,7 @@ static std::vector<const char *> getOptimalValidationLayers(const std::vector<Vk
 
 
 
-VulkanInstance::VulkanInstance(const std::string &applictionName, 
+VulkanInstance::VulkanInstance(const std::string &applicationName, 
                                const std::unordered_map<const char *, bool> &requiredExtensions, 
                                const std::vector<const char *> &requiredValidationLayers,
                                bool headless)
@@ -183,7 +184,7 @@ VulkanInstance::VulkanInstance(const std::string &applictionName,
         }
         else
         {
-            enabledExtensions.push_back(extensionName);
+            m_EnabledExtensions.push_back(extensionName);
         }
     }
 
@@ -224,18 +225,18 @@ VulkanInstance::VulkanInstance(const std::string &applictionName,
 
     VkApplicationInfo appInfo{ VK_STRUCTURE_TYPE_APPLICATION_INFO };
 
-    app_info.pApplicationName = applicationName.c_str();
-    app_info.applicationVersion = 0;
-    app_info.pEngineName = "Vulkan Samples";
-    app_info.engineVersion = 0;
-    app_info.apiVersion = VK_MAKE_VERSION(1, 0, 0);
+    appInfo.pApplicationName = applicationName.c_str();
+    appInfo.applicationVersion = 0;
+    appInfo.pEngineName = "Vulkan Samples";
+    appInfo.engineVersion = 0;
+    appInfo.apiVersion = VK_MAKE_VERSION(1, 0, 0);
 
     VkInstanceCreateInfo instanceInfo = { VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO };
 
     instanceInfo.pApplicationInfo = &appInfo;
 
-    instanceInfo.enabledExtensionCount = /*to_u32*/(enabledExtensions.size());
-    instanceInfo.ppEnabledExtensionNames = enabledExtensions.data();
+    instanceInfo.enabledExtensionCount = /*to_u32*/(m_EnabledExtensions.size());
+    instanceInfo.ppEnabledExtensionNames = m_EnabledExtensions.data();
 
     instanceInfo.enabledLayerCount = /*to_u32*/(requestedValidationLayers.size());
     instanceInfo.ppEnabledLayerNames = requestedValidationLayers.data();
@@ -290,11 +291,11 @@ VulkanInstance::VulkanInstance(const std::string &applictionName,
 }
 
 
-void Instance::QueryGpus()
+void VulkanInstance::QueryGpus()
 {
     // Querying valid physical devices on the machine
     uint32_t physical_device_count{ 0 };
-    VK_CHECK(vkEnumeratePhysicalDevices(handle, &physical_device_count, nullptr));
+    VK_CHECK(vkEnumeratePhysicalDevices(m_Handle, &physical_device_count, nullptr));
 
     if (physical_device_count < 1)
     {
@@ -303,12 +304,12 @@ void Instance::QueryGpus()
 
     std::vector<VkPhysicalDevice> physical_devices;
     physical_devices.resize(physical_device_count);
-    VK_CHECK(vkEnumeratePhysicalDevices(handle, &physical_device_count, physical_devices.data()));
+    VK_CHECK(vkEnumeratePhysicalDevices(m_Handle, &physical_device_count, physical_devices.data()));
 
     // Create gpus wrapper objects from the VkPhysicalDevice's
     for (auto &physical_device : physical_devices)
     {
-        gpus.push_back(std::make_unique<PhysicalDevice>(*this, physical_device));
+        m_GPUS.push_back(std::make_unique<VulkanPhysicalDevice>(*this, physical_device));
     }
 }
 
@@ -343,16 +344,16 @@ VulkanInstance::~VulkanInstance()
     }
 #endif
 
-    if (handle != VK_NULL_HANDLE)
+    if (m_Handle != VK_NULL_HANDLE)
     {
-        vkDestroyInstance(handle, nullptr);
+        vkDestroyInstance(m_Handle, nullptr);
     }
 }
 
-bool VulkanInstance::is_extension_supported(const std::string &requested_extension)
+/*bool VulkanInstance::IsExtensionSupported(const std::string &requestedExtension)
 {
     return std::find_if(device_extensions.begin(), device_extensions.end(),
         [requested_extension](auto &device_extension) {
         return std::strcmp(device_extension.extensionName, requested_extension.c_str()) == 0;
     }) != device_extensions.end();
-}
+}*/

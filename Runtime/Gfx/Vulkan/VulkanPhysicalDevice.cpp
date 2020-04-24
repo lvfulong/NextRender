@@ -1,6 +1,8 @@
 #include "VulkanPhysicalDevice.h"
+#include "VulkanInstance.h"
+#include "Common/Logging.h"
 
-VulkanPhysicalDevice::VulkanPhysicalDevice(const Instance &instance, VkPhysicalDevice physicalDevice) : m_Instance{ instance }, m_Handle{ physicalDevice }
+VulkanPhysicalDevice::VulkanPhysicalDevice(const VulkanInstance &instance, VkPhysicalDevice physicalDevice) : m_Instance{ instance }, m_Handle{ physicalDevice }
 {
    //vkGetPhysicalDeviceFeatures(physical_device, &features);
     vkGetPhysicalDeviceProperties(m_Handle, &m_Properties);
@@ -14,12 +16,12 @@ VulkanPhysicalDevice::VulkanPhysicalDevice(const Instance &instance, VkPhysicalD
     vkGetPhysicalDeviceQueueFamilyProperties(m_Handle, &queueFamilyPropertiesCount, m_QueueFamilyProperties.data());
 }
 
-const VulkanPhysicalDevice::VkPhysicalDeviceProperties &GetProperties() const
+const VkPhysicalDeviceProperties &VulkanPhysicalDevice::GetProperties() const
 {
     return m_Properties;
 }
 
-const std::vector<VkQueueFamilyProperties> &PhysicalDevice::GetQueueFamilyProperties() const
+const std::vector<VkQueueFamilyProperties> &VulkanPhysicalDevice::GetQueueFamilyProperties() const
 {
     return m_QueueFamilyProperties;
 }

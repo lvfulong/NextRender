@@ -2,12 +2,17 @@
 
 #include "Common/Utils.h"
 #include <algorithm>
+#include <vector>
+#include <string>
+#include <unordered_map>
+#include <volk.h>
+#include "VulkanPhysicalDevice.h"
 
 class VulkanInstance : public NonCopyable
 {
 public:
 
-    VulkanInstance(const std::string &applictionName,
+    VulkanInstance(const std::string &applicationName,
                    const std::unordered_map<const char *, bool> &requiredExtensions,
                    const std::vector<const char *> &requiredValidationLayers,
                    bool headless);
@@ -17,6 +22,8 @@ public:
 private:
 
     void QueryGpus();
+
+    //bool IsExtensionSupported(const std::string &requestedExtension);
 
     VkInstance m_Handle{ VK_NULL_HANDLE };
 
@@ -29,5 +36,6 @@ private:
     VkDebugReportCallbackEXT debug_report_callback{ VK_NULL_HANDLE };
 
 #endif
+    std::vector<std::unique_ptr<VulkanPhysicalDevice>> m_GPUS;
 
 };

@@ -1,12 +1,18 @@
 #pragma once
 
 #include "Common/Utils.h"
+#include <algorithm>
+#include <vector>
+#include <string>
+#include <volk.h>
+
+class VulkanInstance;
 
 class VulkanPhysicalDevice : public NonCopyable
 {
 public:
 
-    VulkanPhysicalDevice(const Instance &instance, VkPhysicalDevice physicalDevice);
+    VulkanPhysicalDevice(const VulkanInstance &instance, VkPhysicalDevice physicalDevice);
 
     const VkPhysicalDeviceProperties &GetProperties() const;
 
@@ -14,7 +20,7 @@ public:
 
 private:
 
-    const Instance &m_Instance;
+    const class VulkanInstance &m_Instance;
 
     VkPhysicalDevice m_Handle{ VK_NULL_HANDLE };
 
