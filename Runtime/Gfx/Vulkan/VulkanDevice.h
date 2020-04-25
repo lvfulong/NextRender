@@ -6,8 +6,10 @@
 #include <algorithm>
 #include <vector>
 #include <string>
-#include <volk.h>
 #include <unordered_map>
+#include "VulkanQueue.h"
+#include <vk_mem_alloc.h>
+#include <volk.h>
 
 class VulkanPhysicalDevice;
 
@@ -20,6 +22,8 @@ public:
     ~VulkanDevice();
 
     bool IsExtensionSupported(const std::string &requestedExtension);
+
+    VkDevice GetHandle() const;
 
 private:
 
@@ -35,7 +39,7 @@ private:
 
     std::vector<const char *> m_EnabledExtensions{};
 
-    std::vector<std::vector<Queue>> m_Queues;
+    std::vector<std::vector<VulkanQueue>> m_Queues;
 
     VmaAllocator m_MemoryAllocator{ VK_NULL_HANDLE };
 

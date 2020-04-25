@@ -113,7 +113,7 @@ VulkanDevice::VulkanDevice(const VulkanPhysicalDevice &gpu, VkSurfaceKHR surface
 
     assert(result == VK_SUCCESS && "Cannot create device");
 
-    queues.resize(queueFamilyPropertiesCount);
+    m_Queues.resize(queueFamilyPropertiesCount);
 
     for (uint32_t familyIndex = 0U; familyIndex < queueFamilyPropertiesCount; ++familyIndex)
     {
@@ -130,7 +130,7 @@ VulkanDevice::VulkanDevice(const VulkanPhysicalDevice &gpu, VkSurfaceKHR surface
 
         for (uint32_t queueIndex = 0U; queueIndex < queueFamilyProperty.queueCount; ++queueIndex)
         {
-            queues[familyIndex].emplace_back(*this, familyIndex, queueFamilyProperty, presentSupported, queueIndex);
+            m_Queues[familyIndex].emplace_back(*this, familyIndex, queueFamilyProperty, presentSupported, queueIndex);
         }
     }
 
@@ -197,6 +197,10 @@ VulkanDevice::~VulkanDevice()
     }
 }
 
+VkDevice VulkanDevice::GetHandle() const
+{
+    return m_Handle;
+}
 
 bool VulkanDevice::IsExtensionSupported(const std::string &requestedExtension)
 {
