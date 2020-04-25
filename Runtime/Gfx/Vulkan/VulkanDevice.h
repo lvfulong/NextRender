@@ -17,6 +17,8 @@ public:
 
     VulkanDevice(const VulkanPhysicalDevice &gpu, VkSurfaceKHR surface, std::unordered_map<const char *, bool> requestedExtensions = {});
 
+    ~VulkanDevice();
+
     bool IsExtensionSupported(const std::string &requestedExtension);
 
 private:

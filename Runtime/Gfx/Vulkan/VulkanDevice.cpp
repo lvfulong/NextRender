@@ -174,6 +174,30 @@ VulkanDevice::VulkanDevice(const VulkanPhysicalDevice &gpu, VkSurfaceKHR surface
 
 }
 
+VulkanDevice::~VulkanDevice()
+{
+    //resource_cache.clear();
+
+    //command_pool.reset();
+    //fence_pool.reset();
+
+    if (m_MemoryAllocator != VK_NULL_HANDLE)
+    {
+        VmaStats stats;
+        vmaCalculateStats(m_MemoryAllocator, &stats);
+
+        LOGI("Total device memory leaked: {} bytes.", stats.total.usedBytes);
+
+        vmaDestroyAllocator(m_MemoryAllocator);
+    }
+
+    if (m_Handle != VK_NULL_HANDLE)
+    {
+        vkDestroyDevice(m_Handle, nullptr);
+    }
+}
+
+
 bool VulkanDevice::IsExtensionSupported(const std::string &requestedExtension)
 {
     return std::find_if(m_DeviceExtensions.begin(), m_DeviceExtensions.end(),
