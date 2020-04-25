@@ -33,4 +33,8 @@ private:
 
     std::vector<const char *> m_EnabledExtensions{};
 
+    std::vector<std::vector<Queue>> m_Queues;
+
+    VmaAllocator m_MemoryAllocator{ VK_NULL_HANDLE };
+
 };

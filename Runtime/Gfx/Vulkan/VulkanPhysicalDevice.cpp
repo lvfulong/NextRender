@@ -1,6 +1,7 @@
 #include "VulkanPhysicalDevice.h"
 #include "VulkanInstance.h"
 #include "Common/Logging.h"
+#include "VulkanUtils.h"
 
 VulkanPhysicalDevice::VulkanPhysicalDevice(const VulkanInstance &instance, VkPhysicalDevice physicalDevice) : m_Instance{ instance }, m_Handle{ physicalDevice }
 {
@@ -39,4 +40,21 @@ VkPhysicalDevice VulkanPhysicalDevice::GetHandle() const
 void *VulkanPhysicalDevice::GetRequestedExtensionFeatures() const
 {
     return m_LastRequestedExtensionFeature;
+}
+
+const VkPhysicalDeviceFeatures VulkanPhysicalDevice::GetRequestedFeatures() const
+{
+    return m_RequestedFeatures;
+}
+
+VkBool32 VulkanPhysicalDevice::IsPresentSupported(VkSurfaceKHR surface, uint32_t queueFamilyIndex) const
+{
+    VkBool32 presentSupported{ VK_FALSE };
+
+    if (surface != VK_NULL_HANDLE)
+    {
+        VK_CHECK(vkGetPhysicalDeviceSurfaceSupportKHR(m_Handle, queueFamilyIndex, surface, &presentSupported));
+    }
+
+    return presentSupported;
 }

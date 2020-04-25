@@ -2,6 +2,11 @@
 #include "VulkanPhysicalDevice.h"
 #include "Common/Logging.h"
 #include "VulkanUtils.h"
+#include <volk.h>
+//VKBP_DISABLE_WARNINGS()
+#define VMA_IMPLEMENTATION
+#include <vk_mem_alloc.h>
+//VKBP_ENABLE_WARNINGS()
 
 VulkanDevice::VulkanDevice(const VulkanPhysicalDevice &gpu, VkSurfaceKHR surface, std::unordered_map<const char *, bool> requestedExtensions) : mGPU{ gpu }, m_Surface{ surface }
 {
@@ -95,36 +100,37 @@ VulkanDevice::VulkanDevice(const VulkanPhysicalDevice &gpu, VkSurfaceKHR surface
     VkDeviceCreateInfo createInfo{ VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
 
     // Latest requested feature will have the pNext's all set up for device creation.
-    createInfo.pNext = gpu.GetRequestedExtensionFeatures();
+    //createInfo.pNext = gpu.GetRequestedExtensionFeatures(); TODO
 
     createInfo.pQueueCreateInfos = queueCreateInfos.data();
     createInfo.queueCreateInfoCount = /*to_u32*/(queueCreateInfos.size());
-    const auto requested_gpu_features = gpu.get_requested_features();
+    const auto requested_gpu_features = gpu.GetRequestedFeatures();
     createInfo.pEnabledFeatures = &requested_gpu_features;
-    createInfo.enabledExtensionCount = to_u32(enabled_extensions.size());
-    createInfo.ppEnabledExtensionNames = enabled_extensions.data();
+    createInfo.enabledExtensionCount = /*to_u32*/(m_EnabledExtensions.size());
+    createInfo.ppEnabledExtensionNames = m_EnabledExtensions.data();
 
-    VkResult result = vkCreateDevice(gpu.GetHandle(), &createInfo, nullptr, &handle);
+    VkResult result = vkCreateDevice(gpu.GetHandle(), &createInfo, nullptr, &m_Handle);
 
     assert(result == VK_SUCCESS && "Cannot create device");
 
-    queues.resize(queue_family_properties_count);
+    queues.resize(queueFamilyPropertiesCount);
 
-    for (uint32_t queue_family_index = 0U; queue_family_index < queue_family_properties_count; ++queue_family_index)
+    for (uint32_t familyIndex = 0U; familyIndex < queueFamilyPropertiesCount; ++familyIndex)
     {
-        const VkQueueFamilyProperties &queue_family_property = gpu.get_queue_family_properties()[queue_family_index];
+        const VkQueueFamilyProperties &queueFamilyProperty = gpu.GetQueueFamilyProperties()[familyIndex];
 
-        VkBool32 present_supported = gpu.is_present_supported(surface, queue_family_index);
+        VkBool32 presentSupported = gpu.IsPresentSupported(surface, familyIndex);
 
+        //??????TODO
         // Only check if surface is valid to allow for headless applications
-        if (surface != VK_NULL_HANDLE)
+        /*if (surface != VK_NULL_HANDLE)
         {
-            VK_CHECK(vkGetPhysicalDeviceSurfaceSupportKHR(gpu.get_handle(), queue_family_index, surface, &present_supported));
-        }
+            VK_CHECK(vkGetPhysicalDeviceSurfaceSupportKHR(gpu.GetHandle(), index, surface, &present_supported));
+        }*/
 
-        for (uint32_t queue_index = 0U; queue_index < queue_family_property.queueCount; ++queue_index)
+        for (uint32_t queueIndex = 0U; queueIndex < queueFamilyProperty.queueCount; ++queueIndex)
         {
-            queues[queue_family_index].emplace_back(*this, queue_family_index, queue_family_property, present_supported, queue_index);
+            queues[familyIndex].emplace_back(*this, familyIndex, queueFamilyProperty, presentSupported, queueIndex);
         }
     }
 
@@ -147,10 +153,10 @@ VulkanDevice::VulkanDevice(const VulkanPhysicalDevice &gpu, VkSurfaceKHR surface
     vma_vulkan_func.vkUnmapMemory = vkUnmapMemory;
 
     VmaAllocatorCreateInfo allocator_info{};
-    allocator_info.physicalDevice = gpu.get_handle();
-    allocator_info.device = handle;
+    allocator_info.physicalDevice = gpu.GetHandle();
+    allocator_info.device = m_Handle;
 
-    if (can_get_memory_requirements && has_dedicated_allocation)
+    if (canGetMemoryRequirements && hasDedicatedAllocation)
     {
         allocator_info.flags |= VMA_ALLOCATOR_CREATE_KHR_DEDICATED_ALLOCATION_BIT;
         vma_vulkan_func.vkGetBufferMemoryRequirements2KHR = vkGetBufferMemoryRequirements2KHR;
@@ -159,7 +165,7 @@ VulkanDevice::VulkanDevice(const VulkanPhysicalDevice &gpu, VkSurfaceKHR surface
 
     allocator_info.pVulkanFunctions = &vma_vulkan_func;
 
-    result = vmaCreateAllocator(&allocator_info, &memory_allocator);
+    result = vmaCreateAllocator(&allocator_info, &m_MemoryAllocator);
 
     assert(result == VK_SUCCESS && "Cannot create allocator" );
 

@@ -23,6 +23,12 @@ public:
     //const  VulkanInstance &GetVulkanInstance() const;
 
     void *GetRequestedExtensionFeatures() const;
+
+    const VkPhysicalDeviceFeatures GetRequestedFeatures() const;
+
+
+    VkBool32 IsPresentSupported(VkSurfaceKHR surface, uint32_t queueFamilyIndex) const;
+
 private:
 
     const class VulkanInstance &m_Instance;
@@ -34,4 +40,6 @@ private:
     std::vector<VkQueueFamilyProperties> m_QueueFamilyProperties;
 
     void * m_LastRequestedExtensionFeature{ nullptr };
+
+    VkPhysicalDeviceFeatures m_RequestedFeatures{};
 };
