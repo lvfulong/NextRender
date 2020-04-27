@@ -33,7 +33,11 @@ set(GFX_FILES
 	Gfx/Vulkan/VulkanDevice.h
 	Gfx/Vulkan/VulkanDevice.cpp
 	Gfx/Vulkan/VulkanQueue.h
-	Gfx/Vulkan/VulkanQueue.cpp)
+	Gfx/Vulkan/VulkanQueue.cpp
+	Gfx/Vulkan/VulkanShader.h
+	Gfx/Vulkan/VulkanShader.cpp
+	Gfx/GfxShader.h
+	Gfx/GfxShader.cpp)
 
 set(RENDERING_SUBPASSES_FILES
 
