@@ -5,14 +5,15 @@
 //#include <vector>
 //#include <string>
 #include <volk.h>
+#include "../GfxShader.h"
 
 class VulkanDevice;
 
-class VulkanShader : public NonCopyable
+class VulkanShader : public GfxShader
 {
 public:
 
-    VulkanShader(VulkanDevice &device);
+    VulkanShader(VulkanDevice &device, ShaderType shaderType, const std::string &entryPoint, const std::vector<uint8_t> &source, const std::vector<std::string> &definitions);
 
 private:
 
