@@ -19,4 +19,5 @@ private:
 
     VulkanDevice &m_Device;
 
+    VkShaderModule m_Handle{ VK_NULL_HANDLE };
 };
