@@ -8,7 +8,7 @@
 
 class GfxShader;
 
-using  GfxShaderPtr = std::shared_ptr<GfxShader>;
+using  GfxShaderPtr = std::shared_ptr<GfxShader>;//TODO
 
 enum ShaderType
 {
