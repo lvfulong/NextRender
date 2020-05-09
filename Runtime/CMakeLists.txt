@@ -37,11 +37,19 @@ set(GFX_FILES
 	Gfx/Vulkan/VulkanShader.h
 	Gfx/Vulkan/VulkanShader.cpp
 	Gfx/GfxShader.h
-	Gfx/GfxShader.cpp)
+	Gfx/GfxShader.cpp
+	)
 
-set(RENDERING_SUBPASSES_FILES
-
-)
+set(SCENE_FILES
+	Scene/SceneLoader.h
+	Scene/SceneLoader.cpp
+	Scene/GameObject.h
+	Scene/GameObject.cpp
+	Scene/Component.h
+	Scene/Component.cpp
+	Scene/Transform.h
+	Scene/Transform.cpp
+	)
 
 set(SCENE_GRAPH_FILES
 
@@ -80,7 +88,7 @@ source_group("platform\\unix" FILES ${LINUX_D2D_FILES})
 source_group("core\\" FILES ${CORE_FILES})
 source_group("geometry\\" FILES ${GEOMETRY_FILES})
 source_group("rendering\\" FILES ${RENDERING_FILES})
-source_group("rendering\\subpasses" FILES ${RENDERING_SUBPASSES_FILES})
+source_group("Scene" FILES ${SCENE_FILES})
 source_group("scene_graph\\" FILES ${SCENE_GRAPH_FILES})
 source_group("scene_graph\\components\\" FILES ${SCENE_GRAPH_COMPONENT_FILES})
 source_group("scene_graph\\scripts\\" FILES ${SCENE_GRAPH_SCRIPTS_FILES})
