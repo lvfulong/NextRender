@@ -42,9 +42,7 @@ if(NOT CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     target_compile_definitions(glm INTERFACE GLM_FORCE_CXX14)
 endif()
 
-# spdlog
-add_subdirectory(spdlog)
-set_property(TARGET spdlog_headers_for_ide PROPERTY FOLDER "ThirdParty")
+
 
 # vulkan
 add_library(vulkan INTERFACE)
@@ -158,4 +156,8 @@ else()
         set_property(TARGET glfw PROPERTY FOLDER "ThirdParty")
     endif()
 endif()
+
+# spdlog
+add_subdirectory(spdlog)
+set_property(TARGET spdlog PROPERTY FOLDER "ThirdParty")
 
