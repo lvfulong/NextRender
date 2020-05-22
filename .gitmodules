@@ -7,18 +7,24 @@
 [submodule "ThirdParty/glm"]
 	path = ThirdParty/glm
 	url = https://github.com/g-truc/glm
-[submodule "third_party/glslang"]
-	path = third_party/glslang
+[submodule "ThirdParty/ThirdParty/glslang"]
+	path = ThirdParty/ThirdParty/glslang
 	url = https://github.com/KhronosGroup/glslang
-[submodule "third_party/spirv-cross"]
-	path = third_party/spirv-cross
-	url = https://github.com/KhronosGroup/SPIRV-Cross
-[submodule "ThirdParty/vulkan"]
-	path = ThirdParty/vulkan
-	url = https://github.com/KhronosGroup/Vulkan-Headers
-[submodule "third_party/spdlog"]
-	path = third_party/spdlog
+[submodule "ThirdParty/third_party/spdlog"]
+	path = ThirdParty/third_party/spdlog
 	url = https://github.com/gabime/spdlog
-[submodule "third_party/vma"]
-	path = third_party/vma
+[submodule "ThirdParty/spdlog"]
+	path = ThirdParty/spdlog
+	url = https://github.com/gabime/spdlog
+[submodule "ThirdParty/glslang"]
+	path = ThirdParty/glslang
+	url = https://github.com/KhronosGroup/glslang
+[submodule "ThirdParty/spirv-cross"]
+	path = ThirdParty/spirv-cross
+	url = https://github.com/KhronosGroup/SPIRV-Cross
+[submodule "ThirdParty/vma"]
+	path = ThirdParty/vma
 	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
+[submodule "ThirdParty/volk"]
+	path = ThirdParty/volk
+	url = https://github.com/zeux/volk
